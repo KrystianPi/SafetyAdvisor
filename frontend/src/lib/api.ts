@@ -31,7 +31,7 @@ class ApiClient {
     return response.json()
   }
 
-  async post(endpoint: string, data: any) {
+  async post(endpoint: string, data: Record<string, unknown>) {
     const headers = await this.getAuthHeaders()
     const response = await fetch(`${API_URL}${endpoint}`, {
       method: 'POST',
@@ -46,7 +46,7 @@ class ApiClient {
     return response.json()
   }
 
-  async put(endpoint: string, data: any) {
+  async put(endpoint: string, data: Record<string, unknown>) {
     const headers = await this.getAuthHeaders()
     const response = await fetch(`${API_URL}${endpoint}`, {
       method: 'PUT',
