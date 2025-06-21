@@ -78,21 +78,17 @@ class ApiClient {
 
 export const apiClient = new ApiClient()
 
+// Types for API responses
+export interface DashboardUserData {
+  user_id: string
+  user_email: string
+  account_created: string
+  total_sessions: number
+  last_login: string | null
+}
+
 // Typed API functions
 export const api = {
-  // User endpoints
-  getCurrentUser: () => apiClient.get('/me'),
-  
   // Dashboard endpoints
-  getDashboardStats: () => apiClient.get('/dashboard/stats'),
-  getRecentActivity: () => apiClient.get('/activity'),
-  
-  // Safety Reports endpoints
-  getSafetyReports: () => apiClient.get('/safety-reports'),
-  createSafetyReport: (data: {
-    title: string
-    description: string
-    severity: string
-    location: string
-  }) => apiClient.post('/safety-reports', data),
+  getDashboardUser: (): Promise<DashboardUserData> => apiClient.get('/dashboard/user'),
 } 
