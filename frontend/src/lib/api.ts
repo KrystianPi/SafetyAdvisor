@@ -74,6 +74,7 @@ class ApiClient {
     const response = await fetch(`${API_URL}${endpoint}`, {
       method: 'POST',
       headers,
+      body: JSON.stringify(data),
     })
 
     if (!response.ok) {
