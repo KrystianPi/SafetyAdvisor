@@ -3,9 +3,17 @@ import { createClient } from './supabase'
 // Function to get the correct API URL based on environment
 function getApiUrl(): string {
   const environment = process.env.NEXT_PUBLIC_ENVIRONMENT
+  
+  // Debug logs to identify the issue
+  console.log('🔍 Debug API URL Configuration:')
+  console.log('NEXT_PUBLIC_ENVIRONMENT:', environment)
+  console.log('NEXT_PUBLIC_API_URL:', process.env.NEXT_PUBLIC_API_URL)
+  console.log('VERCEL_GIT_PULL_REQUEST_ID:', process.env.VERCEL_GIT_PULL_REQUEST_ID)
+  console.log('VERCEL_ENV:', process.env.VERCEL_ENV)
 
   // For production environment, use the explicit API URL
   if (environment === 'prod' && process.env.NEXT_PUBLIC_API_URL) {
+    console.log('✅ Using production API URL:', process.env.NEXT_PUBLIC_API_URL)
     return process.env.NEXT_PUBLIC_API_URL
   }
 
@@ -13,19 +21,24 @@ function getApiUrl(): string {
   if (environment === 'preview' && process.env.VERCEL_GIT_PULL_REQUEST_ID) {
     // Replace with your actual Railway service name
     const railwayServiceName = 'safetyadvisor' // Update this with your actual service name
-    return `https://${railwayServiceName}-pr-${process.env.VERCEL_GIT_PULL_REQUEST_ID}.up.railway.app`
+    const previewUrl = `https://${railwayServiceName}-pr-${process.env.VERCEL_GIT_PULL_REQUEST_ID}.up.railway.app`
+    console.log('✅ Using preview API URL:', previewUrl)
+    return previewUrl
   }
 
   // Fallback: try to use explicit API URL if set
   if (process.env.NEXT_PUBLIC_API_URL) {
+    console.log('✅ Using fallback API URL:', process.env.NEXT_PUBLIC_API_URL)
     return process.env.NEXT_PUBLIC_API_URL
   }
 
   // Final fallback to localhost for development
+  console.log('⚠️ Falling back to localhost - no environment conditions met')
   return 'http://localhost:8000'
 }
 
 const API_URL = getApiUrl()
+console.log('🎯 Final API_URL:', API_URL)
 
 class ApiClient {
   private async getAuthHeaders() {
