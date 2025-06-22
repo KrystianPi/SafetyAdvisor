@@ -1,4 +1,3 @@
-import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from routers import dashboard
@@ -26,13 +25,12 @@ app = FastAPI(
 # CORS configuration for Vercel frontend
 app.add_middleware(
     CORSMiddleware,
+    allow_origin_regex=r"https://safety-advisor.*\.vercel\.app",  # Regex for your specific Vercel project
     allow_origins=[
         "http://localhost:3000",  # Local development
-        "https://*.vercel.app",  # Vercel deployments
-        os.getenv("FRONTEND_URL", ""),  # Your custom domain
     ],
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["*"],
 )
 

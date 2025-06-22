@@ -1,6 +1,34 @@
 import { createClient } from './supabase'
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
+// Function to get the correct API URL based on environment
+function getApiUrl(): string {
+  const environment = process.env.NEXT_PUBLIC_ENVIRONMENT
+
+  // For production environment, use the explicit API URL
+  if (environment === 'prod' && process.env.NEXT_PUBLIC_API_URL) {
+    console.log('✅ Using production API URL:', process.env.NEXT_PUBLIC_API_URL)
+    return process.env.NEXT_PUBLIC_API_URL
+  }
+
+  // For preview environment, construct the URL dynamically using PR ID
+  if (environment === 'preview' && process.env.NEXT_PUBLIC_VERCEL_GIT_PULL_REQUEST_ID) {
+    const railwayServiceName = 'safetyadvisor'
+    // Railway URL pattern: service-name-service-name-pr-number.up.railway.app
+    const previewUrl = `https://${railwayServiceName}-${railwayServiceName}-pr-${process.env.NEXT_PUBLIC_VERCEL_GIT_PULL_REQUEST_ID}.up.railway.app`
+    console.log('✅ Using preview API URL:', previewUrl)
+    return previewUrl
+  }
+
+  // Fallback: try to use explicit API URL if set
+  if (process.env.NEXT_PUBLIC_API_URL) {
+    console.log('✅ Using fallback API URL:', process.env.NEXT_PUBLIC_API_URL)
+    return process.env.NEXT_PUBLIC_API_URL
+  }
+
+  return 'http://localhost:8000'
+}
+
+const API_URL = getApiUrl()
 
 class ApiClient {
   private async getAuthHeaders() {
