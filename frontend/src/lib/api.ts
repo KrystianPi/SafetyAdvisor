@@ -21,7 +21,8 @@ function getApiUrl(): string {
   // For preview environment, construct the URL dynamically using PR ID
   if (environment === 'preview' && process.env.NEXT_PUBLIC_VERCEL_GIT_PULL_REQUEST_ID) {
     const railwayServiceName = 'safetyadvisor'
-    const previewUrl = `https://${railwayServiceName}-pr-${process.env.NEXT_PUBLIC_VERCEL_GIT_PULL_REQUEST_ID}.up.railway.app`
+    // Railway URL pattern: service-name-service-name-pr-number.up.railway.app
+    const previewUrl = `https://${railwayServiceName}-${railwayServiceName}-pr-${process.env.NEXT_PUBLIC_VERCEL_GIT_PULL_REQUEST_ID}.up.railway.app`
     console.log('✅ Using preview API URL:', previewUrl)
     return previewUrl
   }

@@ -97,7 +97,7 @@ Set up automatic preview deployments for both frontend and backend when creating
 1. In your Railway project dashboard, navigate to your backend service settings
 2. Find the "Deployments" or "PRs" section and enable "PR/Branch Deploys"
 3. Note your Railway service name (visible in settings or production URL)
-4. Railway will automatically create preview deployments with URLs like: `https://your-service-name-pr-123.up.railway.app`
+4. Railway will automatically create preview deployments with URLs like: `https://service-name-service-name-pr-123.up.railway.app`
 
 #### Vercel Frontend PR Previews:
 1. In your Vercel project settings, go to "Environment Variables"
@@ -127,7 +127,8 @@ function getApiUrl(): string {
   if (environment === 'preview' && process.env.NEXT_PUBLIC_VERCEL_GIT_PULL_REQUEST_ID) {
     // Replace 'your-service-name' with your actual Railway service name
     const railwayServiceName = 'your-service-name'
-    return `https://${railwayServiceName}-pr-${process.env.NEXT_PUBLIC_VERCEL_GIT_PULL_REQUEST_ID}.up.railway.app`
+    // Railway URL pattern: service-name-service-name-pr-number.up.railway.app
+    return `https://${railwayServiceName}-${railwayServiceName}-pr-${process.env.NEXT_PUBLIC_VERCEL_GIT_PULL_REQUEST_ID}.up.railway.app`
   }
 
   // Fallback: try to use explicit API URL if set
@@ -143,6 +144,8 @@ const API_URL = getApiUrl()
 ```
 
 **Important Note**: When Vercel's "Automatically expose System Environment Variables" is enabled, all system variables are prefixed with `NEXT_PUBLIC_` to make them accessible in the browser. So `VERCEL_GIT_PULL_REQUEST_ID` becomes `NEXT_PUBLIC_VERCEL_GIT_PULL_REQUEST_ID`.
+
+**Railway URL Pattern**: Railway creates PR preview URLs in the format `service-name-service-name-pr-number.up.railway.app` (note the duplicated service name).
 
 #### CORS Configuration:
 Your backend should already include this CORS configuration in `app.py`:
