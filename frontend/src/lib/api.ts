@@ -4,12 +4,13 @@ import { createClient } from './supabase'
 function getApiUrl(): string {
   const environment = process.env.NEXT_PUBLIC_ENVIRONMENT
   
-  // Debug logs to identify the issue
+  // Debug logs with the correct NEXT_PUBLIC_ prefixed variables
   console.log('🔍 Debug API URL Configuration:')
   console.log('NEXT_PUBLIC_ENVIRONMENT:', environment)
   console.log('NEXT_PUBLIC_API_URL:', process.env.NEXT_PUBLIC_API_URL)
-  console.log('VERCEL_GIT_PULL_REQUEST_ID:', process.env.VERCEL_GIT_PULL_REQUEST_ID)
-  console.log('VERCEL_ENV:', process.env.VERCEL_ENV)
+  console.log('NEXT_PUBLIC_VERCEL_ENV:', process.env.NEXT_PUBLIC_VERCEL_ENV)
+  console.log('NEXT_PUBLIC_VERCEL_GIT_PULL_REQUEST_ID:', process.env.NEXT_PUBLIC_VERCEL_GIT_PULL_REQUEST_ID)
+  console.log('NEXT_PUBLIC_VERCEL_GIT_COMMIT_REF:', process.env.NEXT_PUBLIC_VERCEL_GIT_COMMIT_REF)
 
   // For production environment, use the explicit API URL
   if (environment === 'prod' && process.env.NEXT_PUBLIC_API_URL) {
@@ -18,10 +19,9 @@ function getApiUrl(): string {
   }
 
   // For preview environment, construct the URL dynamically using PR ID
-  if (environment === 'preview' && process.env.VERCEL_GIT_PULL_REQUEST_ID) {
-    // Replace with your actual Railway service name
-    const railwayServiceName = 'safetyadvisor' // Update this with your actual service name
-    const previewUrl = `https://${railwayServiceName}-pr-${process.env.VERCEL_GIT_PULL_REQUEST_ID}.up.railway.app`
+  if (environment === 'preview' && process.env.NEXT_PUBLIC_VERCEL_GIT_PULL_REQUEST_ID) {
+    const railwayServiceName = 'safetyadvisor'
+    const previewUrl = `https://${railwayServiceName}-pr-${process.env.NEXT_PUBLIC_VERCEL_GIT_PULL_REQUEST_ID}.up.railway.app`
     console.log('✅ Using preview API URL:', previewUrl)
     return previewUrl
   }
@@ -74,7 +74,6 @@ class ApiClient {
     const response = await fetch(`${API_URL}${endpoint}`, {
       method: 'POST',
       headers,
-      body: JSON.stringify(data),
     })
 
     if (!response.ok) {

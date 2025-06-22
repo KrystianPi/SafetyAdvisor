@@ -103,13 +103,14 @@ Set up automatic preview deployments for both frontend and backend when creating
 1. In your Vercel project settings, go to "Environment Variables"
 2. **Enable System Environment Variables**:
    - Check "Automatically expose System Environment Variables"
+   - **Important**: When enabled, Vercel prefixes system variables with `NEXT_PUBLIC_` for browser access
 3. **Set up Production environment variables**:
    - `NEXT_PUBLIC_ENVIRONMENT` = `prod`
    - `NEXT_PUBLIC_API_URL` = `https://your-service-name-production.up.railway.app`
 4. **Set up Preview environment variables**:
    - `NEXT_PUBLIC_ENVIRONMENT` = `preview`
    - (No need to set `NEXT_PUBLIC_API_URL` for preview - it will be constructed dynamically)
-5. **Update your API client code** to use the environment variable:
+5. **Update your API client code** to use the prefixed environment variables:
 
 ```typescript
 // In your API client (e.g., lib/api.ts)
@@ -122,10 +123,11 @@ function getApiUrl(): string {
   }
 
   // For preview environment, construct the URL dynamically using PR ID
-  if (environment === 'preview' && process.env.VERCEL_GIT_PULL_REQUEST_ID) {
+  // Note: Use NEXT_PUBLIC_VERCEL_GIT_PULL_REQUEST_ID (with NEXT_PUBLIC_ prefix)
+  if (environment === 'preview' && process.env.NEXT_PUBLIC_VERCEL_GIT_PULL_REQUEST_ID) {
     // Replace 'your-service-name' with your actual Railway service name
     const railwayServiceName = 'your-service-name'
-    return `https://${railwayServiceName}-pr-${process.env.VERCEL_GIT_PULL_REQUEST_ID}.up.railway.app`
+    return `https://${railwayServiceName}-pr-${process.env.NEXT_PUBLIC_VERCEL_GIT_PULL_REQUEST_ID}.up.railway.app`
   }
 
   // Fallback: try to use explicit API URL if set
@@ -139,6 +141,8 @@ function getApiUrl(): string {
 
 const API_URL = getApiUrl()
 ```
+
+**Important Note**: When Vercel's "Automatically expose System Environment Variables" is enabled, all system variables are prefixed with `NEXT_PUBLIC_` to make them accessible in the browser. So `VERCEL_GIT_PULL_REQUEST_ID` becomes `NEXT_PUBLIC_VERCEL_GIT_PULL_REQUEST_ID`.
 
 #### CORS Configuration:
 Your backend should already include this CORS configuration in `app.py`:
