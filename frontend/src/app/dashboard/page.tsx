@@ -44,8 +44,8 @@ const mockChartData = [
 ]
 
 const sidebarItems = [
-  { icon: BarChart3, label: 'Dashboard', href: '#', active: true },
-  { icon: AlertTriangle, label: 'Incidents', href: '#', active: false },
+  { icon: BarChart3, label: 'Dashboard', href: '/dashboard', active: true },
+  { icon: AlertTriangle, label: 'Incidents', href: '/incidents', active: false },
   { icon: Shield, label: 'Compliance', href: '#', active: false },
   { icon: Users, label: 'Training', href: '#', active: false },
   { icon: FileText, label: 'Reports', href: '#', active: false },
@@ -217,7 +217,7 @@ export default function DashboardPage() {
                 <Calendar className="mr-2 h-4 w-4" />
                 Last 30 days
               </Button>
-              <Button size="sm">
+              <Button size="sm" onClick={() => router.push('/incidents')}>
                 <Plus className="mr-2 h-4 w-4" />
                 Report Incident
               </Button>
@@ -347,7 +347,7 @@ export default function DashboardPage() {
                       Latest safety incidents and their status
                     </CardDescription>
                   </div>
-                  <Button size="sm">
+                  <Button size="sm" onClick={() => router.push('/incidents')}>
                     <Plus className="mr-2 h-4 w-4" />
                     Add Incident
                   </Button>

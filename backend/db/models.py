@@ -15,3 +15,14 @@ class DashboardStats(BaseModel):
     account_created: datetime
     total_sessions: int = 0
     last_login: Optional[datetime] = None 
+
+class AccidentData(BaseModel):
+    date: datetime
+    time: str
+    location: str
+    description: str
+    injuries: str
+    fatalities: int
+    immidate_cause: str
+    root_cause: str
+    contributing_human_factors: str

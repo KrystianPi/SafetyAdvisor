@@ -102,6 +102,32 @@ class ApiClient {
 
     return response.json()
   }
+
+  async uploadFile(endpoint: string, file: File) {
+    const supabase = createClient()
+    const { data: { session } } = await supabase.auth.getSession()
+    
+    if (!session?.access_token) {
+      throw new Error('No authentication token available')
+    }
+
+    const formData = new FormData()
+    formData.append('file', file)
+
+    const response = await fetch(`${API_URL}${endpoint}`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${session.access_token}`,
+      },
+      body: formData,
+    })
+
+    if (!response.ok) {
+      throw new Error(`API request failed: ${response.statusText}`)
+    }
+
+    return response.json()
+  }
 }
 
 export const apiClient = new ApiClient()
@@ -115,8 +141,23 @@ export interface DashboardUserData {
   last_login: string | null
 }
 
+export interface AccidentData {
+  date: string
+  time: string
+  location: string
+  description: string
+  injuries: string
+  fatalities: number
+  immidate_cause: string
+  root_cause: string
+  contributing_human_factors: string
+}
+
 // Typed API functions
 export const api = {
   // Dashboard endpoints
   getDashboardUser: (): Promise<DashboardUserData> => apiClient.get('/dashboard/user'),
+  
+  // Incident endpoints
+  uploadIncidentReport: (file: File): Promise<AccidentData> => apiClient.uploadFile('/dashboard/upload', file),
 } 
