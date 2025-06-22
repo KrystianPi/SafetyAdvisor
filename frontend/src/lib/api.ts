@@ -3,14 +3,6 @@ import { createClient } from './supabase'
 // Function to get the correct API URL based on environment
 function getApiUrl(): string {
   const environment = process.env.NEXT_PUBLIC_ENVIRONMENT
-  
-  // Debug logs with the correct NEXT_PUBLIC_ prefixed variables
-  console.log('🔍 Debug API URL Configuration:')
-  console.log('NEXT_PUBLIC_ENVIRONMENT:', environment)
-  console.log('NEXT_PUBLIC_API_URL:', process.env.NEXT_PUBLIC_API_URL)
-  console.log('NEXT_PUBLIC_VERCEL_ENV:', process.env.NEXT_PUBLIC_VERCEL_ENV)
-  console.log('NEXT_PUBLIC_VERCEL_GIT_PULL_REQUEST_ID:', process.env.NEXT_PUBLIC_VERCEL_GIT_PULL_REQUEST_ID)
-  console.log('NEXT_PUBLIC_VERCEL_GIT_COMMIT_REF:', process.env.NEXT_PUBLIC_VERCEL_GIT_COMMIT_REF)
 
   // For production environment, use the explicit API URL
   if (environment === 'prod' && process.env.NEXT_PUBLIC_API_URL) {
@@ -33,13 +25,10 @@ function getApiUrl(): string {
     return process.env.NEXT_PUBLIC_API_URL
   }
 
-  // Final fallback to localhost for development
-  console.log('⚠️ Falling back to localhost - no environment conditions met')
   return 'http://localhost:8000'
 }
 
 const API_URL = getApiUrl()
-console.log('🎯 Final API_URL:', API_URL)
 
 class ApiClient {
   private async getAuthHeaders() {
