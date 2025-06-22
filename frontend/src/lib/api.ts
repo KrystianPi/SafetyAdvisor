@@ -2,7 +2,7 @@ import { createClient } from './supabase'
 
 // Function to get the correct API URL based on environment
 function getApiUrl(): string {
-  const environment = process.env.NEXT_PUBLIC_ENVIRONMENT
+  const environment = process.env.ENVIRONMENT
 
   // For production environment, use the explicit API URL
   if (environment === 'prod' && process.env.NEXT_PUBLIC_API_URL) {
