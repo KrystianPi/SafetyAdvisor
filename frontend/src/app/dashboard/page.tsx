@@ -10,16 +10,13 @@ import {
   BarChart3, 
   Shield, 
   AlertTriangle, 
-  CheckCircle, 
   Users, 
   FileText, 
   Plus,
-  Settings,
   LogOut,
   TrendingUp,
   Calendar,
   Filter,
-  MoreHorizontal,
   Eye
 } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -56,7 +53,7 @@ const sidebarItems = [
 
 export default function DashboardPage() {
   const [user, setUser] = useState<User | null>(null)
-  const [dashboardData, setDashboardData] = useState<DashboardUserData | null>(null)
+  // const [dashboardData, setDashboardData] = useState<DashboardUserData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const supabase = createClient()
@@ -74,8 +71,8 @@ export default function DashboardPage() {
         setUser(user)
 
         // Fetch dashboard data from backend
-        const dashboardData = await api.getDashboardUser()
-        setDashboardData(dashboardData)
+        // const dashboardData = await api.getDashboardUser()
+        // setDashboardData(dashboardData)
       } catch (err) {
         console.error('Dashboard error:', err)
         setError(err instanceof Error ? err.message : 'Failed to load dashboard')
@@ -210,9 +207,9 @@ export default function DashboardPage() {
               <h2 className="text-3xl font-bold text-foreground">
                 Dashboard Overview
               </h2>
-              <p className="text-muted-foreground mt-1">
-                Welcome back! Here's what's happening with your safety metrics.
-              </p>
+                          <p className="text-muted-foreground mt-1">
+              Welcome back! Here&apos;s what&apos;s happening with your safety metrics.
+            </p>
             </div>
             <div className="flex items-center space-x-3">
               <ThemeToggle />
