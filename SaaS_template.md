@@ -101,12 +101,44 @@ Set up automatic preview deployments for both frontend and backend when creating
 
 #### Vercel Frontend PR Previews:
 1. In your Vercel project settings, go to "Environment Variables"
-2. Add `NEXT_PUBLIC_API_URL` for **Production** environment:
-   - Value: `https://your-service-name-production.up.railway.app` (your main backend URL)
-3. Add `NEXT_PUBLIC_API_URL` for **Preview** environment:
-   - Value: `https://your-service-name-pr-${VERCEL_GIT_PULL_REQUEST_ID}.up.railway.app`
-   - Replace `your-service-name` with your actual Railway service name
-4. Vercel will automatically substitute `${VERCEL_GIT_PULL_REQUEST_ID}` with the PR number
+2. **Enable System Environment Variables**:
+   - Check "Automatically expose System Environment Variables"
+3. **Set up Production environment variables**:
+   - `NEXT_PUBLIC_ENVIRONMENT` = `prod`
+   - `NEXT_PUBLIC_API_URL` = `https://your-service-name-production.up.railway.app`
+4. **Set up Preview environment variables**:
+   - `NEXT_PUBLIC_ENVIRONMENT` = `preview`
+   - (No need to set `NEXT_PUBLIC_API_URL` for preview - it will be constructed dynamically)
+5. **Update your API client code** to use the environment variable:
+
+```typescript
+// In your API client (e.g., lib/api.ts)
+function getApiUrl(): string {
+  const environment = process.env.NEXT_PUBLIC_ENVIRONMENT
+
+  // For production environment, use the explicit API URL
+  if (environment === 'prod' && process.env.NEXT_PUBLIC_API_URL) {
+    return process.env.NEXT_PUBLIC_API_URL
+  }
+
+  // For preview environment, construct the URL dynamically using PR ID
+  if (environment === 'preview' && process.env.VERCEL_GIT_PULL_REQUEST_ID) {
+    // Replace 'your-service-name' with your actual Railway service name
+    const railwayServiceName = 'your-service-name'
+    return `https://${railwayServiceName}-pr-${process.env.VERCEL_GIT_PULL_REQUEST_ID}.up.railway.app`
+  }
+
+  // Fallback: try to use explicit API URL if set
+  if (process.env.NEXT_PUBLIC_API_URL) {
+    return process.env.NEXT_PUBLIC_API_URL
+  }
+
+  // Final fallback to localhost for development
+  return 'http://localhost:8000'
+}
+
+const API_URL = getApiUrl()
+```
 
 #### CORS Configuration:
 Your backend should already include this CORS configuration in `app.py`:
