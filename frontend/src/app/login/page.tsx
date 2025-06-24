@@ -38,7 +38,7 @@ export default function LoginPage() {
             <div className="relative">
               <Image 
                 src="/logo_transparent.png" 
-                alt="SafetyAdvisor Logo" 
+                alt="Global Safety Agent Logo" 
                 width={80} 
                 height={80}
                 className="rounded-xl"
@@ -51,7 +51,7 @@ export default function LoginPage() {
           
           <div className="space-y-2">
             <h2 className="text-3xl font-bold tracking-tight text-foreground">
-              SafetyAdvisor
+            Global Safety Agent
             </h2>
             <p className="text-lg font-medium text-primary">
               Safety Management Platform
@@ -156,7 +156,7 @@ export default function LoginPage() {
           </div>
           
           <div className="flex items-center justify-center space-x-6 text-xs text-muted-foreground">
-            <span>© 2024 SafetyAdvisor</span>
+            <span>© 2024 Global Safety Agent</span>
             <span>•</span>
             <span>All rights reserved</span>
           </div>

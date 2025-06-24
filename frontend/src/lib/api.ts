@@ -142,15 +142,75 @@ export interface DashboardUserData {
 }
 
 export interface AccidentData {
+  // Basic incident information
   date: string
-  time: string
-  location: string
-  description: string
-  injuries: string
-  fatalities: number
-  immidate_cause: string
-  root_cause: string
-  contributing_human_factors: string
+  time_of_day: string
+  vessel_name: string
+  vessel_location: string
+  
+  // Client information
+  client: string
+  client_advised: boolean
+  project_no_well_name: string
+  vessel_connected_to_well: boolean
+  
+  // Incident classification
+  related_to_work: boolean
+  classification: string
+  type_of_event: string
+  
+  // Investigation details
+  human_factor_identified: boolean
+  investigated_with_hit: boolean
+  level_of_investigation: string
+  
+  // Marine conditions
+  sea_state: string
+  swell_direction: string
+  swell_period_s: number
+  swell_height_m: number
+  
+  // Incident details
+  incident_location_on_vessel: string
+  incident_description: string
+  job_role: string
+  
+  // Work type flags
+  work_at_height: boolean
+  work_in_confined_space: boolean
+  lifting_operation_incident: boolean
+  dropped_object: boolean
+  environmental_loss_of_containment: boolean
+  
+  // Personnel information
+  ip_sign_on_datetime?: string | null
+  first_shift_on_board: boolean
+  hours_after_sign_on: number
+  
+  // Injury information
+  injury_status: string
+  injured_person_transported: string
+  first_aid_provided: boolean
+  injured_person_medivac: boolean
+  injured_person_returned_to_work: boolean
+  hours_until_return_to_work?: number | null
+  
+  // Equipment and tools
+  tools_used: string
+  equipment_involved_affected: string
+  equipment_isolated_inhibited: boolean
+  equipment_damaged: string
+  
+  // Permit to Work information
+  ptw_type: string
+  ptw_number: string
+  trac_jsa_completed: boolean
+  
+  // Task and safety information
+  task_being_performed: string
+  ppe_worn: string
+  photos_cctv_available: boolean
+  corrective_preventive_actions_assigned: string
 }
 
 // Typed API functions

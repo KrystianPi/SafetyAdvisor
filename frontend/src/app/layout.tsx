@@ -9,7 +9,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "SafetyAdvisor - Safety Management Dashboard",
+  title: "Global Safety Agent - Safety Management Dashboard",
   description: "Comprehensive safety management and compliance tracking platform",
 };
 

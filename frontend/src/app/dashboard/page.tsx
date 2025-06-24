@@ -126,7 +126,7 @@ export default function DashboardPage() {
             <div className="relative">
               <Image 
                 src="/logo_transparent.png" 
-                alt="SafetyAdvisor Logo" 
+                alt="Global Safety Agent Logo" 
                 width={40} 
                 height={40}
                 className="rounded-lg"
@@ -134,7 +134,7 @@ export default function DashboardPage() {
             </div>
             <div>
               <h1 className="text-lg font-semibold text-foreground">
-                SafetyAdvisor
+              Global Safety Agent
               </h1>
               <p className="text-xs text-muted-foreground">
                 Safety Management

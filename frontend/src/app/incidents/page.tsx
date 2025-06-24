@@ -21,7 +21,15 @@ import {
   AlertCircle,
   UserX,
   Search,
-  ChevronRight
+  ChevronRight,
+  Ship,
+  Anchor,
+  Waves,
+  Wrench,
+  HardHat,
+  ClipboardCheck,
+  Activity,
+  Eye
 } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -109,6 +117,42 @@ export default function IncidentsPage() {
     }
   }
 
+  const formatDateTime = (dateTimeString: string) => {
+    try {
+      return new Date(dateTimeString).toLocaleString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      })
+    } catch {
+      return dateTimeString
+    }
+  }
+
+  const getInjuryStatusBadge = (status: string) => {
+    if (!status || status.trim() === '') {
+      return <Badge variant="outline">Not Specified</Badge>
+    }
+    const lowerStatus = status.toLowerCase()
+    if (lowerStatus.includes('fatal') || lowerStatus.includes('death')) {
+      return <Badge variant="destructive">Fatal</Badge>
+    } else if (lowerStatus.includes('serious') || lowerStatus.includes('severe')) {
+      return <Badge variant="destructive">Serious Injury</Badge>
+    } else if (lowerStatus.includes('minor') || lowerStatus.includes('first aid')) {
+      return <Badge variant="secondary">Minor Injury</Badge>
+    } else if (lowerStatus.includes('no injury') || lowerStatus.includes('none')) {
+      return <Badge variant="outline">No Injury</Badge>
+    } else {
+      return <Badge>{status}</Badge>
+    }
+  }
+
+  const displayValue = (value: string, fallback: string = "Not specified") => {
+    return value && value.trim() !== '' ? value : fallback
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -146,7 +190,7 @@ export default function IncidentsPage() {
             <div className="relative">
               <Image 
                 src="/logo_transparent.png" 
-                alt="SafetyAdvisor Logo" 
+                alt="Global Safety Agent Logo" 
                 width={40} 
                 height={40}
                 className="rounded-lg"
@@ -154,7 +198,7 @@ export default function IncidentsPage() {
             </div>
             <div>
               <h1 className="text-lg font-semibold text-foreground">
-                SafetyAdvisor
+              Global Safety Agent
               </h1>
               <p className="text-xs text-muted-foreground">
                 Safety Management
@@ -346,7 +390,7 @@ export default function IncidentsPage() {
                 </Button>
               </div>
 
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
                 {/* Basic Information */}
                 <Card>
                   <CardHeader>
@@ -366,49 +410,192 @@ export default function IncidentsPage() {
                     <div className="flex items-center space-x-3">
                       <Clock className="h-4 w-4 text-muted-foreground" />
                       <div>
-                        <p className="text-sm font-medium">Time</p>
-                        <p className="text-sm text-muted-foreground">{accidentData.time}</p>
+                        <p className="text-sm font-medium">Time of Day</p>
+                        <p className="text-sm text-muted-foreground">{displayValue(accidentData.time_of_day)}</p>
                       </div>
                     </div>
                     <div className="flex items-center space-x-3">
                       <MapPin className="h-4 w-4 text-muted-foreground" />
                       <div>
                         <p className="text-sm font-medium">Location</p>
-                        <p className="text-sm text-muted-foreground">{accidentData.location}</p>
+                        <p className="text-sm text-muted-foreground">{displayValue(accidentData.vessel_location)}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center space-x-3">
+                      <Users className="h-4 w-4 text-muted-foreground" />
+                      <div>
+                        <p className="text-sm font-medium">Job Role</p>
+                        <p className="text-sm text-muted-foreground">{displayValue(accidentData.job_role)}</p>
                       </div>
                     </div>
                   </CardContent>
                 </Card>
 
-                {/* Impact Summary */}
+                {/* Vessel Information */}
                 <Card>
                   <CardHeader>
                     <CardTitle className="flex items-center space-x-2">
-                      <AlertTriangle className="h-5 w-5" />
-                      <span>Impact Summary</span>
+                      <Ship className="h-5 w-5" />
+                      <span>Vessel & Project</span>
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <div className="flex items-center space-x-3">
-                      <UserX className="h-4 w-4 text-muted-foreground" />
+                      <Ship className="h-4 w-4 text-muted-foreground" />
                       <div>
-                        <p className="text-sm font-medium">Fatalities</p>
-                        <Badge variant={accidentData.fatalities > 0 ? "destructive" : "secondary"}>
-                          {accidentData.fatalities}
-                        </Badge>
+                        <p className="text-sm font-medium">Vessel</p>
+                        <p className="text-sm text-muted-foreground">{accidentData.vessel_name}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center space-x-3">
+                      <Users className="h-4 w-4 text-muted-foreground" />
+                      <div>
+                        <p className="text-sm font-medium">Client</p>
+                        <p className="text-sm text-muted-foreground">{accidentData.client}</p>
                       </div>
                     </div>
                     <div className="space-y-2">
-                      <p className="text-sm font-medium">Injuries</p>
-                      <p className="text-sm text-muted-foreground bg-muted/50 p-3 rounded-lg">
-                        {accidentData.injuries}
+                      <p className="text-sm font-medium">Project/Well</p>
+                      <p className="text-sm text-muted-foreground bg-muted/50 p-2 rounded">
+                        {accidentData.project_no_well_name}
                       </p>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Anchor className="h-4 w-4 text-muted-foreground" />
+                      <span className="text-sm">Connected to Well:</span>
+                      <Badge variant={accidentData.vessel_connected_to_well ? "default" : "secondary"}>
+                        {accidentData.vessel_connected_to_well ? "Yes" : "No"}
+                      </Badge>
                     </div>
                   </CardContent>
                 </Card>
 
-                {/* Description */}
-                <Card className="lg:col-span-2">
+                {/* Incident Classification */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center space-x-2">
+                      <AlertTriangle className="h-5 w-5" />
+                      <span>Classification</span>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="space-y-2">
+                      <p className="text-sm font-medium">Type</p>
+                      <Badge variant="outline">{displayValue(accidentData.type_of_event)}</Badge>
+                    </div>
+                    <div className="space-y-2">
+                      <p className="text-sm font-medium">Classification</p>
+                      <Badge variant="secondary">{displayValue(accidentData.classification)}</Badge>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <span className="text-sm">Work Related:</span>
+                      <Badge variant={accidentData.related_to_work ? "destructive" : "secondary"}>
+                        {accidentData.related_to_work ? "Yes" : "No"}
+                      </Badge>
+                    </div>
+                    <div className="space-y-2">
+                      <p className="text-sm font-medium">Investigation Level</p>
+                      <Badge variant="outline">{accidentData.level_of_investigation}</Badge>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Injury Information */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center space-x-2">
+                      <Activity className="h-5 w-5" />
+                      <span>Injury Details</span>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="space-y-2">
+                      <p className="text-sm font-medium">Status</p>
+                      {getInjuryStatusBadge(accidentData.injury_status)}
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <span className="text-sm">First Aid:</span>
+                      <Badge variant={accidentData.first_aid_provided ? "default" : "secondary"}>
+                        {accidentData.first_aid_provided ? "Provided" : "Not Needed"}
+                      </Badge>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <span className="text-sm">Medivac:</span>
+                      <Badge variant={accidentData.injured_person_medivac ? "destructive" : "secondary"}>
+                        {accidentData.injured_person_medivac ? "Yes" : "No"}
+                      </Badge>
+                    </div>
+                    {accidentData.injured_person_transported && (
+                      <div className="space-y-2">
+                        <p className="text-sm font-medium">Transported To</p>
+                        <p className="text-sm text-muted-foreground bg-muted/50 p-2 rounded">
+                          {accidentData.injured_person_transported}
+                        </p>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+
+                {/* Marine Conditions */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center space-x-2">
+                      <Waves className="h-5 w-5" />
+                      <span>Marine Conditions</span>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="space-y-2">
+                      <p className="text-sm font-medium">Sea State</p>
+                      <Badge variant="outline">{accidentData.sea_state}</Badge>
+                    </div>
+                    <div className="space-y-2">
+                      <p className="text-sm font-medium">Swell</p>
+                      <div className="text-sm text-muted-foreground space-y-1">
+                        <p>Height: {accidentData.swell_height_m}m</p>
+                        <p>Period: {accidentData.swell_period_s}s</p>
+                        <p>Direction: {accidentData.swell_direction}</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Work Details */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center space-x-2">
+                      <Wrench className="h-5 w-5" />
+                      <span>Work Details</span>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="space-y-2">
+                      <p className="text-sm font-medium">Task Being Performed</p>
+                      <p className="text-sm text-muted-foreground bg-muted/50 p-2 rounded">
+                        {accidentData.task_being_performed}
+                      </p>
+                    </div>
+                    <div className="space-y-2">
+                      <p className="text-sm font-medium">Tools Used</p>
+                      <p className="text-sm text-muted-foreground bg-muted/50 p-2 rounded">
+                        {accidentData.tools_used}
+                      </p>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {accidentData.work_at_height && <Badge variant="secondary">Work at Height</Badge>}
+                      {accidentData.work_in_confined_space && <Badge variant="secondary">Confined Space</Badge>}
+                      {accidentData.lifting_operation_incident && <Badge variant="secondary">Lifting Operation</Badge>}
+                      {accidentData.dropped_object && <Badge variant="secondary">Dropped Object</Badge>}
+                      {accidentData.environmental_loss_of_containment && <Badge variant="secondary">Environmental Loss</Badge>}
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Full-width cards */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Incident Description */}
+                <Card>
                   <CardHeader>
                     <CardTitle className="flex items-center space-x-2">
                       <FileText className="h-5 w-5" />
@@ -417,52 +604,122 @@ export default function IncidentsPage() {
                   </CardHeader>
                   <CardContent>
                     <p className="text-sm text-muted-foreground bg-muted/50 p-4 rounded-lg leading-relaxed">
-                      {accidentData.description}
+                      {accidentData.incident_description}
                     </p>
+                    <div className="mt-4 space-y-2">
+                      <p className="text-sm font-medium">Location on Vessel</p>
+                      <Badge variant="outline">{accidentData.incident_location_on_vessel}</Badge>
+                    </div>
                   </CardContent>
                 </Card>
 
-                {/* Root Cause Analysis */}
-                <Card className="lg:col-span-2">
+                {/* Safety & Equipment */}
+                <Card>
                   <CardHeader>
                     <CardTitle className="flex items-center space-x-2">
-                      <Search className="h-5 w-5" />
-                      <span>Root Cause Analysis</span>
+                      <HardHat className="h-5 w-5" />
+                      <span>Safety & Equipment</span>
                     </CardTitle>
                   </CardHeader>
-                  <CardContent className="space-y-6">
-                    <div className="space-y-3">
-                      <div className="flex items-center space-x-2">
-                        <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-sm font-medium">Immediate Cause</span>
-                      </div>
-                      <p className="text-sm text-muted-foreground bg-muted/50 p-3 rounded-lg ml-6">
-                        {accidentData.immidate_cause}
+                  <CardContent className="space-y-4">
+                    <div className="space-y-2">
+                      <p className="text-sm font-medium">PPE Worn</p>
+                      <p className="text-sm text-muted-foreground bg-muted/50 p-2 rounded">
+                        {accidentData.ppe_worn}
                       </p>
                     </div>
-                    
-                    <div className="space-y-3">
-                      <div className="flex items-center space-x-2">
-                        <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-sm font-medium">Root Cause</span>
+                    {accidentData.equipment_involved_affected && (
+                      <div className="space-y-2">
+                        <p className="text-sm font-medium">Equipment Involved</p>
+                        <p className="text-sm text-muted-foreground bg-muted/50 p-2 rounded">
+                          {accidentData.equipment_involved_affected}
+                        </p>
                       </div>
-                      <p className="text-sm text-muted-foreground bg-muted/50 p-3 rounded-lg ml-6">
-                        {accidentData.root_cause}
-                      </p>
-                    </div>
-                    
-                    <div className="space-y-3">
-                      <div className="flex items-center space-x-2">
-                        <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-sm font-medium">Contributing Human Factors</span>
+                    )}
+                    {accidentData.equipment_damaged && (
+                      <div className="space-y-2">
+                        <p className="text-sm font-medium">Equipment Damage</p>
+                        <p className="text-sm text-muted-foreground bg-muted/50 p-2 rounded">
+                          {accidentData.equipment_damaged}
+                        </p>
                       </div>
-                      <p className="text-sm text-muted-foreground bg-muted/50 p-3 rounded-lg ml-6">
-                        {accidentData.contributing_human_factors}
-                      </p>
-                    </div>
+                    )}
                   </CardContent>
                 </Card>
               </div>
+
+              {/* Investigation & Actions */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center space-x-2">
+                    <ClipboardCheck className="h-5 w-5" />
+                    <span>Investigation & Actions</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-4">
+                      <div className="flex items-center space-x-2">
+                        <span className="text-sm">Human Factor Identified:</span>
+                        <Badge variant={accidentData.human_factor_identified ? "destructive" : "secondary"}>
+                          {accidentData.human_factor_identified ? "Yes" : "No"}
+                        </Badge>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <span className="text-sm">HIT Investigation:</span>
+                        <Badge variant={accidentData.investigated_with_hit ? "default" : "secondary"}>
+                          {accidentData.investigated_with_hit ? "Yes" : "No"}
+                        </Badge>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <span className="text-sm">TRAC/JSA Completed:</span>
+                        <Badge variant={accidentData.trac_jsa_completed ? "default" : "secondary"}>
+                          {accidentData.trac_jsa_completed ? "Yes" : "No"}
+                        </Badge>
+                      </div>
+                      <div className="space-y-2">
+                        <p className="text-sm font-medium">PTW Details</p>
+                        <div className="text-sm text-muted-foreground">
+                          <p>Type: {accidentData.ptw_type}</p>
+                          <p>Number: {accidentData.ptw_number}</p>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-4">
+                      <div className="flex items-center space-x-2">
+                        <Eye className="h-4 w-4 text-muted-foreground" />
+                        <span className="text-sm">Photos/CCTV Available:</span>
+                        <Badge variant={accidentData.photos_cctv_available ? "default" : "secondary"}>
+                          {accidentData.photos_cctv_available ? "Yes" : "No"}
+                        </Badge>
+                      </div>
+                      <div className="space-y-2">
+                        <p className="text-sm font-medium">Personnel Details</p>
+                        <div className="text-sm text-muted-foreground space-y-1">
+                          {accidentData.ip_sign_on_datetime ? (
+                            <p>Sign-on: {formatDateTime(accidentData.ip_sign_on_datetime)}</p>
+                          ) : (
+                            <p>Sign-on: Not available</p>
+                          )}
+                          <p>First shift: {accidentData.first_shift_on_board ? "Yes" : "No"}</p>
+                          <p>Hours after sign-on: {accidentData.hours_after_sign_on}</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-3">
+                    <div className="flex items-center space-x-2">
+                      <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                      <span className="text-sm font-medium">Corrective/Preventive Actions</span>
+                    </div>
+                    <p className="text-sm text-muted-foreground bg-muted/50 p-3 rounded-lg ml-6">
+                      {accidentData.corrective_preventive_actions_assigned}
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
             </div>
           )}
         </main>
