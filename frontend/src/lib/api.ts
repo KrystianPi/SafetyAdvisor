@@ -217,7 +217,10 @@ export interface AccidentData {
 export const api = {
   // Dashboard endpoints
   getDashboardUser: (): Promise<DashboardUserData> => apiClient.get('/dashboard/user'),
+  getDashboardIncidents: (): Promise<{incidents: any[]}> => apiClient.get('/dashboard/incidents'),
   
   // Incident endpoints
   uploadIncidentReport: (file: File): Promise<AccidentData> => apiClient.uploadFile('/dashboard/upload', file),
+  saveIncident: (accidentData: AccidentData): Promise<{success: boolean, message: string, incident_id: string}> => 
+    apiClient.post('/dashboard/save-incident', accidentData as unknown as Record<string, unknown>),
 } 

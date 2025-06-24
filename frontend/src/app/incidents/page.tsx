@@ -38,20 +38,28 @@ import { cn } from '@/lib/utils'
 import { ThemeToggle } from '@/components/theme-toggle'
 
 const sidebarItems = [
-  { icon: BarChart3, label: 'Dashboard', href: '/dashboard', active: false },
-  { icon: AlertTriangle, label: 'Incidents', href: '/incidents', active: true },
-  { icon: Shield, label: 'Compliance', href: '#', active: false },
-  { icon: Users, label: 'Training', href: '#', active: false },
-  { icon: FileText, label: 'Reports', href: '#', active: false },
+  { icon: BarChart3, label: 'Dashboard', href: '/dashboard', active: true },
+  { icon: AlertTriangle, label: 'Add Incident', href: '/incidents', active: false },
+  { icon: Shield, label: 'PTW', href: '#', active: false },
+]
+
+const progressStages = [
+  { message: "Reading PDF...", description: "Analyzing document structure", progress: 25 },
+  { message: "Thinking...", description: "Processing content with AI", progress: 50 },
+  { message: "Extracting data...", description: "Identifying incident details", progress: 75 },
+  { message: "Generating response...", description: "Finalizing structured data", progress: 99 }
 ]
 
 export default function IncidentsPage() {
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
   const [uploading, setUploading] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [progressStage, setProgressStage] = useState(0)
   const [accidentData, setAccidentData] = useState<AccidentData | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [uploadError, setUploadError] = useState<string | null>(null)
+  const [saveSuccess, setSaveSuccess] = useState<string | null>(null)
   const supabase = createClient()
   const router = useRouter()
 
@@ -93,15 +101,48 @@ export default function IncidentsPage() {
     setUploading(true)
     setUploadError(null)
     setAccidentData(null)
+    setSaveSuccess(null)
+    setProgressStage(0)
+
+    // Start progress animation
+    const progressInterval = setInterval(() => {
+      setProgressStage(prev => {
+        if (prev < progressStages.length - 1) {
+          return prev + 1
+        }
+        return prev
+      })
+    }, 8000) // Change stage every 8 seconds
 
     try {
       const result = await api.uploadIncidentReport(file)
       setAccidentData(result)
+      setProgressStage(progressStages.length - 1) // Ensure we're at final stage
     } catch (err) {
       console.error('Upload error:', err)
       setUploadError(err instanceof Error ? err.message : 'Failed to process the PDF file')
     } finally {
+      clearInterval(progressInterval)
       setUploading(false)
+      setProgressStage(0)
+    }
+  }
+
+  const handleSaveIncident = async () => {
+    if (!accidentData) return
+
+    setSaving(true)
+    setUploadError(null)
+    setSaveSuccess(null)
+
+    try {
+      const result = await api.saveIncident(accidentData)
+      setSaveSuccess(`Incident saved successfully! ID: ${result.incident_id}`)
+    } catch (err) {
+      console.error('Save error:', err)
+      setUploadError(err instanceof Error ? err.message : 'Failed to save incident to database')
+    } finally {
+      setSaving(false)
     }
   }
 
@@ -307,47 +348,125 @@ export default function IncidentsPage() {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-6">
-                    <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-8 text-center hover:border-muted-foreground/50 transition-colors">
-                      <Upload className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                      <div className="space-y-2">
-                        <h3 className="text-lg font-medium">Choose a PDF file</h3>
-                        <p className="text-sm text-muted-foreground">
-                          Select an incident report in PDF format to process
-                        </p>
-                      </div>
-                      <div className="mt-6">
-                        <input
-                          type="file"
-                          accept=".pdf"
-                          onChange={handleFileUpload}
-                          disabled={uploading}
-                          className="hidden"
-                          id="file-upload"
-                        />
-                        <label htmlFor="file-upload">
-                          <Button 
-                            variant="outline" 
-                            disabled={uploading}
-                            className="cursor-pointer"
-                            asChild
-                          >
-                            <span>
-                              {uploading ? (
-                                <>
-                                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current mr-2"></div>
-                                  Processing...
-                                </>
-                              ) : (
-                                <>
+                    {!uploading ? (
+                      /* Upload Interface */
+                      <>
+                        <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-8 text-center hover:border-muted-foreground/50 transition-colors">
+                          <Upload className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                          <div className="space-y-2">
+                            <h3 className="text-lg font-medium">Choose a PDF file</h3>
+                            <p className="text-sm text-muted-foreground">
+                              Select an incident report in PDF format to process
+                            </p>
+                          </div>
+                          <div className="mt-6">
+                            <input
+                              type="file"
+                              accept=".pdf"
+                              onChange={handleFileUpload}
+                              disabled={uploading}
+                              className="hidden"
+                              id="file-upload"
+                            />
+                            <label htmlFor="file-upload">
+                              <Button 
+                                variant="outline" 
+                                disabled={uploading}
+                                className="cursor-pointer"
+                                asChild
+                              >
+                                <span>
                                   <Upload className="mr-2 h-4 w-4" />
                                   Select PDF File
-                                </>
-                              )}
+                                </span>
+                              </Button>
+                            </label>
+                          </div>
+                        </div>
+
+                        <div className="bg-muted/50 rounded-lg p-4">
+                          <h4 className="font-medium mb-2">Supported formats:</h4>
+                          <ul className="text-sm text-muted-foreground space-y-1">
+                            <li>• PDF files (.pdf)</li>
+                            <li>• Files will be processed to extract incident data automatically</li>
+                            <li>• Processing may take a few moments</li>
+                          </ul>
+                        </div>
+                      </>
+                    ) : (
+                      /* Progress Interface */
+                      <div className="space-y-6">
+                        <div className="text-center">
+                          <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <FileText className="h-8 w-8 text-primary animate-pulse" />
+                          </div>
+                          <h3 className="text-xl font-semibold text-foreground mb-2">
+                            Processing Your Document
+                          </h3>
+                          <p className="text-muted-foreground">
+                            Our AI is analyzing your PDF and extracting incident data
+                          </p>
+                        </div>
+
+                        {/* Progress Bar */}
+                        <div className="space-y-4">
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm font-medium text-foreground">
+                              {progressStages[progressStage]?.message}
                             </span>
-                          </Button>
-                        </label>
+                            <span className="text-sm text-muted-foreground">
+                              {progressStages[progressStage]?.progress}%
+                            </span>
+                          </div>
+                          
+                          <div className="w-full bg-secondary rounded-full h-3 overflow-hidden">
+                            <div 
+                              className="h-full bg-gradient-to-r from-blue-500 to-purple-600 rounded-full transition-all duration-1000 ease-out"
+                              style={{ 
+                                width: `${progressStages[progressStage]?.progress || 0}%`,
+                                transition: 'width 1000ms ease-out'
+                              }}
+                            />
+                          </div>
+                          
+                          <p className="text-sm text-muted-foreground text-center">
+                            {progressStages[progressStage]?.description}
+                          </p>
+                        </div>
+
+                        {/* Progress Steps */}
+                        <div className="grid grid-cols-4 gap-2">
+                          {progressStages.map((stage, index) => (
+                            <div 
+                              key={index}
+                              className={cn(
+                                "text-center p-3 rounded-lg border transition-all duration-300",
+                                index <= progressStage 
+                                  ? "bg-primary/10 border-primary/20 text-primary" 
+                                  : "bg-muted/50 border-muted text-muted-foreground"
+                              )}
+                            >
+                              <div className="text-xs font-medium">
+                                Step {index + 1}
+                              </div>
+                              <div className="text-xs mt-1 truncate">
+                                {stage.message.replace('...', '')}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+
+                        {/* Estimated Time */}
+                                                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-center">
+                           <div className="flex items-center justify-center space-x-2 text-blue-800">
+                             <Clock className="h-4 w-4" />
+                             <span className="text-sm font-medium">
+                               Estimated processing time: 20-30 seconds
+                             </span>
+                           </div>
+                         </div>
                       </div>
-                    </div>
+                    )}
 
                     {uploadError && (
                       <div className="bg-destructive/10 border border-destructive/20 text-destructive px-4 py-3 rounded-lg">
@@ -358,15 +477,6 @@ export default function IncidentsPage() {
                         <p className="text-sm mt-1">{uploadError}</p>
                       </div>
                     )}
-
-                    <div className="bg-muted/50 rounded-lg p-4">
-                      <h4 className="font-medium mb-2">Supported formats:</h4>
-                      <ul className="text-sm text-muted-foreground space-y-1">
-                        <li>• PDF files (.pdf)</li>
-                        <li>• Files will be processed to extract incident data automatically</li>
-                        <li>• Processing may take a few moments</li>
-                      </ul>
-                    </div>
                   </div>
                 </CardContent>
               </Card>
@@ -379,16 +489,58 @@ export default function IncidentsPage() {
                   <h3 className="text-2xl font-bold text-foreground">Extracted Incident Data</h3>
                   <p className="text-muted-foreground">Review the automatically extracted information</p>
                 </div>
-                <Button 
-                  variant="outline" 
-                  onClick={() => {
-                    setAccidentData(null)
-                    setUploadError(null)
-                  }}
-                >
-                  Upload Another File
-                </Button>
+                <div className="flex items-center space-x-3">
+                  <Button 
+                    onClick={handleSaveIncident}
+                    disabled={saving}
+                    className="bg-green-600 hover:bg-green-700"
+                  >
+                    {saving ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current mr-2"></div>
+                        Saving...
+                      </>
+                    ) : (
+                      <>
+                        <ClipboardCheck className="mr-2 h-4 w-4" />
+                        Confirm & Add Incident
+                      </>
+                    )}
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    onClick={() => {
+                      setAccidentData(null)
+                      setUploadError(null)
+                      setSaveSuccess(null)
+                    }}
+                  >
+                    Upload Another File
+                  </Button>
+                </div>
               </div>
+
+              {/* Success Message */}
+              {saveSuccess && (
+                <div className="bg-green-50 border border-green-200 text-green-800 px-4 py-3 rounded-lg">
+                  <div className="flex items-center space-x-2">
+                    <ClipboardCheck className="h-4 w-4" />
+                    <span className="text-sm font-medium">Success!</span>
+                  </div>
+                  <p className="text-sm mt-1">{saveSuccess}</p>
+                </div>
+              )}
+
+              {/* Error Message */}
+              {uploadError && (
+                <div className="bg-destructive/10 border border-destructive/20 text-destructive px-4 py-3 rounded-lg">
+                  <div className="flex items-center space-x-2">
+                    <AlertCircle className="h-4 w-4" />
+                    <span className="text-sm font-medium">Error</span>
+                  </div>
+                  <p className="text-sm mt-1">{uploadError}</p>
+                </div>
+              )}
 
               <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
                 {/* Basic Information */}
