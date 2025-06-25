@@ -88,3 +88,11 @@ class AccidentData(BaseModel):
     ppe_worn: str = Field(default="", description="PPE worn including additional PPE")
     photos_cctv_available: bool = Field(default=False, description="Whether photos or CCTV are available")
     corrective_preventive_actions_assigned: str = Field(default="", description="Corrective/preventive actions assigned")
+
+
+class PTWData(BaseModel):
+    vessel_name: str = Field(default="", description="Name of the vessel")
+    description_of_work: str = Field(default="", description="Description of work being performed")
+    work_location: str = Field(default="", description="Location of work being performed")
+    job_safety_analysis_number: str = Field(default="", description="Job Safety Analysis Number")
+    equipment_required: str = Field(default="", description="Equipment required")

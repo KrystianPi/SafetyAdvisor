@@ -213,6 +213,25 @@ export interface AccidentData {
   corrective_preventive_actions_assigned: string
 }
 
+export interface PTWData {
+  vessel_name: string
+  description_of_work: string
+  work_location: string
+  job_safety_analysis_number: string
+  equipment_required: string
+}
+
+export interface SimilarIncident {
+  id: string
+  date: string
+  time_of_day: string
+  vessel_name: string
+  incident_location_on_vessel: string
+  incident_description: string
+  tools_used: string
+  injury_status: string
+}
+
 // Typed API functions
 export const api = {
   // Dashboard endpoints
@@ -223,4 +242,9 @@ export const api = {
   uploadIncidentReport: (file: File): Promise<AccidentData> => apiClient.uploadFile('/dashboard/upload', file),
   saveIncident: (accidentData: AccidentData): Promise<{success: boolean, message: string, incident_id: string}> => 
     apiClient.post('/dashboard/save-incident', accidentData as unknown as Record<string, unknown>),
+  
+  // PTW endpoints
+  uploadPTWReport: (file: File): Promise<PTWData> => apiClient.uploadFile('/dashboard/upload-ptw', file),
+  getSimilarIncidents: (): Promise<{similar_incidents: SimilarIncident[], summary: string}> => apiClient.get('/dashboard/similar-incidents'),
+  getIncidentDetails: (incidentId: string): Promise<{incident: AccidentData}> => apiClient.get(`/dashboard/incident/${incidentId}`),
 } 

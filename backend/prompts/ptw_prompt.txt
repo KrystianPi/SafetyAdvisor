@@ -1,0 +1,18 @@
+Extract the follwing data from the permit to work document: 
+
+IMPORTANT: If any information is not available in the document, use the default values specified below:
+
+vessel_name: str = Field(default="", description="Name of the vessel")
+description_of_work: str = Field(default="", description="Description of work being performed")
+work_location: str = Field(default="", description="Location of work being performed")
+job_safety_analysis_number: str = Field(default="", description="Job Safety Analysis Number")
+equipment_required: str = Field(default="", description="Equipment required")
+
+CRITICAL RULES:
+1. NEVER return null for string fields - always use empty string "" instead
+2. NEVER return null for boolean fields - always use false instead  
+3. NEVER return null for number fields - always use 0.0 instead
+4. Return valid JSON format only
+5. Do your best to extract available information, but don't guess - use defaults when unsure
+6. For boolean fields, look for clear indicators like "Yes/No", "True/False", checkboxes, etc.
+7. Return the data only in english language. Translate from portuguese if needed. Never return the data in portuguese. 

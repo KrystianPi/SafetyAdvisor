@@ -15,4 +15,5 @@ dependencies = [
     "pdf2image>=1.17.0",
     "openai>=1.90.0",
     "python-multipart>=0.0.20",
+    "mistralai>=1.8.2",
 ]

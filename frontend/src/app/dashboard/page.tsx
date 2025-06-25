@@ -27,12 +27,18 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
 import { ThemeToggle } from '@/components/theme-toggle'
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from 'recharts'
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, ScatterChart, Scatter } from 'recharts'
+
+interface SelectOption {
+  value: string
+  label: string
+  type: 'categorical' | 'numerical'
+}
 
 const sidebarItems = [
   { icon: BarChart3, label: 'Dashboard', href: '/dashboard', active: true },
   { icon: AlertTriangle, label: 'Add Incident', href: '/incidents', active: false },
-  { icon: Shield, label: 'PTW', href: '#', active: false },
+  { icon: Shield, label: 'PTW', href: '/ptw', active: false },
 ]
 
 const COLORS = ['#8884d8', '#82ca9d', '#ffc658', '#ff7c7c', '#8dd1e1', '#d084d0', '#ffb347']
@@ -42,6 +48,9 @@ export default function DashboardPage() {
   const [incidents, setIncidents] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [selectedXAxis, setSelectedXAxis] = useState<string>('vessel_name')
+  const [selectedYAxis, setSelectedYAxis] = useState<string>('swell_height_m')
+  const [selectedHue, setSelectedHue] = useState<string>('classification')
   const supabase = createClient()
   const router = useRouter()
 
@@ -192,6 +201,92 @@ export default function DashboardPage() {
       { name: 'Near Misses', value: nearMisses },
       { name: 'Actual Incidents', value: incidents_count }
     ]
+  }
+
+  // Define available data options for the interactive plot
+  const dataOptions: SelectOption[] = [
+    { value: 'vessel_name', label: 'Vessel Name', type: 'categorical' },
+    { value: 'classification', label: 'Classification', type: 'categorical' },
+    { value: 'type_of_event', label: 'Type of Event', type: 'categorical' },
+    { value: 'injury_status', label: 'Injury Status', type: 'categorical' },
+    { value: 'job_role', label: 'Job Role', type: 'categorical' },
+    { value: 'client', label: 'Client', type: 'categorical' },
+    { value: 'sea_state', label: 'Sea State', type: 'categorical' },
+    { value: 'swell_height_m', label: 'Swell Height (m)', type: 'numerical' },
+    { value: 'swell_period_s', label: 'Swell Period (s)', type: 'numerical' },
+    { value: 'hours_after_sign_on', label: 'Hours After Sign On', type: 'numerical' },
+    { value: 'count', label: 'Count of Incidents', type: 'numerical' },
+  ]
+
+  const generateInteractiveChartData = () => {
+    if (!incidents.length) return []
+
+    const xOption = dataOptions.find(opt => opt.value === selectedXAxis)
+    const yOption = dataOptions.find(opt => opt.value === selectedYAxis)
+    const hueOption = dataOptions.find(opt => opt.value === selectedHue)
+
+    if (!xOption || !yOption || !hueOption) return []
+
+    const isCounting = selectedYAxis === 'count'
+    const grouped: { [key: string]: { [hue: string]: number[] } } = {}
+
+    incidents.forEach(incident => {
+      const xValue = incident[selectedXAxis] || 'Unknown'
+      const hueValue = incident[selectedHue] || 'Unknown'
+      
+      if (!xValue || !hueValue) return
+
+      if (!grouped[xValue]) grouped[xValue] = {}
+      if (!grouped[xValue][hueValue]) grouped[xValue][hueValue] = []
+
+      if (isCounting) {
+        grouped[xValue][hueValue].push(1)
+      } else {
+        const yValue = parseFloat(incident[selectedYAxis])
+        if (!isNaN(yValue)) {
+          grouped[xValue][hueValue].push(yValue)
+        }
+      }
+    })
+
+    const result: any[] = []
+    Object.entries(grouped).forEach(([xValue, hueData]) => {
+      const dataPoint: any = { 
+        name: xValue,
+        [selectedXAxis]: xValue 
+      }
+      Object.entries(hueData).forEach(([hueValue, values]) => {
+        if (values.length === 0) return
+
+        if (isCounting) {
+          dataPoint[hueValue] = values.length
+        } else {
+          // Calculate average for numerical data
+          const sum = values.reduce((a, b) => a + b, 0)
+          dataPoint[hueValue] = sum / values.length
+        }
+      })
+      result.push(dataPoint)
+    })
+
+    return result
+  }
+
+  const getUniqueHueValues = () => {
+    if (!incidents.length || !selectedHue) return []
+    const uniqueHues = new Set<string>()
+    incidents.forEach(incident => {
+      const hueValue = incident[selectedHue]
+      if (hueValue && String(hueValue).trim()) {
+        uniqueHues.add(String(hueValue))
+      }
+    })
+    
+    if (incidents.some(i => !i[selectedHue] || !String(i[selectedHue]).trim())) {
+        uniqueHues.add('Unknown');
+    }
+
+    return Array.from(uniqueHues).slice(0, 7)
   }
 
   const handleSignOut = async () => {
@@ -410,6 +505,116 @@ export default function DashboardPage() {
               </CardContent>
             </Card>
           </div>
+
+          {/* Interactive Data Explorer */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <BarChart3 className="h-5 w-5" />
+                Interactive Data Explorer
+              </CardTitle>
+              <CardDescription>
+                Customize your data visualization by selecting different variables
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {/* Controls Row */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">X-Axis</label>
+                    <select 
+                      value={selectedXAxis} 
+                      onChange={(e) => setSelectedXAxis(e.target.value)}
+                      className="w-full p-2 border rounded-md bg-background text-foreground"
+                    >
+                      {dataOptions.filter(opt => opt.type === 'categorical').map(option => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Y-Axis</label>
+                    <select 
+                      value={selectedYAxis} 
+                      onChange={(e) => setSelectedYAxis(e.target.value)}
+                      className="w-full p-2 border rounded-md bg-background text-foreground"
+                    >
+                      {dataOptions.filter(opt => opt.type === 'numerical').map(option => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Color By</label>
+                    <select 
+                      value={selectedHue} 
+                      onChange={(e) => setSelectedHue(e.target.value)}
+                      className="w-full p-2 border rounded-md bg-background text-foreground"
+                    >
+                      {dataOptions.filter(opt => opt.type === 'categorical').map(option => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                {/* Chart */}
+                <div className="h-96">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={generateInteractiveChartData()}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="name" angle={-45} textAnchor="end" height={80} interval={0} />
+                      <YAxis 
+                        label={{ 
+                          value: dataOptions.find(o => o.value === selectedYAxis)?.label, 
+                          angle: -90, 
+                          position: 'insideLeft',
+                          style: { textAnchor: 'middle', fill: 'hsl(var(--muted-foreground))' },
+                        }} 
+                      />
+                      <Tooltip 
+                        formatter={(value: any, name: any) => [
+                          typeof value === 'number' ? value.toFixed(2) : value, 
+                          name
+                        ]}
+                      />
+                      {getUniqueHueValues().map((hueValue, index) => (
+                        <Bar 
+                          key={hueValue}
+                          dataKey={hueValue}
+                          stackId="a"
+                          name={hueValue}
+                          fill={COLORS[index % COLORS.length]}
+                        />
+                      ))}
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+
+                {/* Legend */}
+                <div className="flex flex-wrap gap-4 justify-center">
+                  {getUniqueHueValues().map((hueValue, index) => (
+                    <div key={hueValue} className="flex items-center gap-2">
+                      <div 
+                        className="w-3 h-3 rounded" 
+                        style={{ backgroundColor: COLORS[index % COLORS.length] }}
+                      />
+                      <span className="text-sm">{hueValue}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
 
           {/* Charts Grid */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">

@@ -1,8 +1,8 @@
 from fastapi import APIRouter, Depends, UploadFile, File, HTTPException
 from auth.dependencies import get_current_user
-from db.models import User, DashboardStats, AccidentData
-from db.queries import get_all_incidents, insert_incident
-from services.extractor import process_pdf_file
+from db.models import User, DashboardStats, AccidentData, PTWData
+from db.queries import get_all_incidents, insert_incident, get_similar_incidents, get_incident_by_id
+from services.extractor import process_incident_report, process_ptw_report
 import tempfile
 import os
 import logging
@@ -38,6 +38,80 @@ async def get_all_dashboard_incidents(current_user: User = Depends(get_current_u
     except Exception as e:
         logger.error(f"Error fetching incidents for dashboard: {str(e)}")
         raise HTTPException(status_code=500, detail="Failed to retrieve incidents")
+
+
+@router.get("/incident/{incident_id}")
+async def get_incident_details(
+    incident_id: str, current_user: User = Depends(get_current_user)
+):
+    """
+    Get detailed information about a specific incident by ID
+    """
+    try:
+        incident = get_incident_by_id(incident_id)
+        if not incident:
+            raise HTTPException(status_code=404, detail="Incident not found")
+        
+        logger.info(f"Retrieved incident details for ID: {incident_id}")
+        return {"incident": incident}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error fetching incident details for ID {incident_id}: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to retrieve incident details")
+
+
+@router.get("/similar-incidents")
+async def get_similar_incidents_endpoint(current_user: User = Depends(get_current_user)):
+    """
+    Get similar incidents for PTW analysis using hardcoded incident IDs
+    """
+    try:
+        similar_incidents = get_similar_incidents()
+        logger.info(f"Retrieved {len(similar_incidents)} similar incidents")
+        summary = """
+        <h2>Why These 3 Incidents Are Important for PTW Decision</h2>
+
+        <h3>Incident 1: Fire/Explosion During Welding (High Potential Near Miss)</h3>
+
+        <p><strong>Why it's critical:</strong></p>
+        <ul>
+            <li>Same vessel (HELIX 1), same location (Main Deck), same task (welding)</li>
+            <li>JSA was NOT completed properly - directly relevant to your JSA-055 requirement</li>
+            <li>Shows what happens when safety barriers fail during welding operations</li>
+            <li>Sparks ignited combustible materials - major fire risk for hot work</li>
+        </ul>
+
+        <p><strong>Decision impact:</strong> Requires enhanced fire watch, mandatory fire blankets, and strict JSA verification</p>
+
+        <h3>Incident 2: Severe Burn Injury from Torch Malfunction (Lost Time Injury)</h3>
+
+        <p><strong>Why it's critical:</strong></p>
+        <ul>
+            <li>Same equipment type (torch) that's listed in your PTW equipment requirements</li>
+            <li>Major injury requiring helicopter evacuation - shows severity potential</li>
+            <li>Equipment failure during cutting operation - equipment inspection concerns</li>
+            <li>Same vessel and location as proposed work</li>
+        </ul>
+
+        <p><strong>Decision impact:</strong> Mandates pre-work equipment inspection and enhanced emergency response protocols</p>
+
+        <h3>Incident 3: Grinding Wheel Explosion During Surface Prep (Medical Treatment Case)</h3>
+
+        <p><strong>Why it's critical:</strong></p>
+        <ul>
+            <li>Same equipment (sander) listed in your PTW requirements</li>
+            <li>Surface preparation is typically required before welding/cutting</li>
+            <li>Projectile hazard from equipment failure - shows need for exclusion zones</li>
+            <li>Same vessel and location as proposed work</li>
+        </ul>
+
+        <p><strong>Decision impact:</strong> Requires grinding wheel inspection protocol and enhanced PPE requirements</p>
+        """
+        return {"similar_incidents": similar_incidents, "summary": summary}
+    except Exception as e:
+        logger.error(f"Error fetching similar incidents: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to retrieve similar incidents")
 
 
 @router.post("/save-incident")
@@ -89,7 +163,7 @@ async def upload_accident_report(
         logger.info(f"Temporary file created: {temp_file_path}")
 
         # Process the PDF and extract accident data
-        accident_data = process_pdf_file(temp_file_path)
+        accident_data = process_incident_report(temp_file_path)
         logger.info("Successfully processed PDF and extracted accident data")
         return accident_data
 
@@ -115,4 +189,58 @@ async def upload_accident_report(
             except Exception as e:
                 logger.warning(
                     f"Failed to clean up temporary file {temp_file_path}: {str(e)}"
+                )
+
+
+@router.post("/upload-ptw", response_model=PTWData)
+async def upload_ptw_report(
+    file: UploadFile = File(...), current_user: User = Depends(get_current_user)
+):
+    """
+    Upload and process a PTW (Permit to Work) report PDF to extract structured data
+    """
+    logger.info(f"Received PTW file upload: {file.filename} from user {current_user.email}")
+
+    if not file.filename or not file.filename.lower().endswith(".pdf"):
+        logger.error(f"Invalid file type: {file.filename}")
+        raise HTTPException(status_code=400, detail="Only PDF files are supported")
+
+    temp_file_path = None
+    try:
+        # Create temporary file
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as temp_file:
+            content = await file.read()
+            logger.info(f"PTW file size: {len(content)} bytes")
+            temp_file.write(content)
+            temp_file_path = temp_file.name
+
+        logger.info(f"Temporary PTW file created: {temp_file_path}")
+
+        # Process the PDF and extract PTW data
+        ptw_data = process_ptw_report(temp_file_path)
+        logger.info("Successfully processed PTW PDF and extracted data")
+        return ptw_data
+
+    except ValueError as e:
+        # These are our custom errors from the processing functions
+        logger.error(f"PTW processing error: {str(e)}")
+        raise HTTPException(status_code=422, detail=str(e))
+    except Exception as e:
+        # Unexpected errors
+        logger.error(
+            f"Unexpected error during PTW file processing: {str(e)}", exc_info=True
+        )
+        raise HTTPException(
+            status_code=500,
+            detail="An unexpected error occurred while processing the PTW file",
+        )
+    finally:
+        # Clean up temporary file
+        if temp_file_path and os.path.exists(temp_file_path):
+            try:
+                os.unlink(temp_file_path)
+                logger.info(f"Cleaned up temporary PTW file: {temp_file_path}")
+            except Exception as e:
+                logger.warning(
+                    f"Failed to clean up temporary PTW file {temp_file_path}: {str(e)}"
                 )

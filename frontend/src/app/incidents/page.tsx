@@ -38,9 +38,9 @@ import { cn } from '@/lib/utils'
 import { ThemeToggle } from '@/components/theme-toggle'
 
 const sidebarItems = [
-  { icon: BarChart3, label: 'Dashboard', href: '/dashboard', active: true },
-  { icon: AlertTriangle, label: 'Add Incident', href: '/incidents', active: false },
-  { icon: Shield, label: 'PTW', href: '#', active: false },
+  { icon: BarChart3, label: 'Dashboard', href: '/dashboard', active: false },
+  { icon: AlertTriangle, label: 'Add Incident', href: '/incidents', active: true },
+  { icon: Shield, label: 'PTW', href: '/ptw', active: false },
 ]
 
 const progressStages = [

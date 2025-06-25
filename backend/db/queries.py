@@ -1,7 +1,7 @@
 import logging
 import uuid
 from datetime import datetime
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 from .connection import get_supabase_client
 from .models import AccidentData
@@ -35,6 +35,83 @@ def get_all_incidents() -> List[Dict[str, Any]]:
     except Exception as e:
         logger.error(f"Error fetching incidents: {str(e)}")
         raise Exception(f"Failed to retrieve incidents: {str(e)}")
+
+
+def get_incident_by_id(incident_id: str) -> Optional[Dict[str, Any]]:
+    """
+    Retrieve a single incident by ID from the incidents table.
+    
+    Args:
+        incident_id: The ID of the incident to retrieve
+    
+    Returns:
+        Optional[Dict[str, Any]]: The incident data if found, None otherwise
+        
+    Raises:
+        Exception: If there's an error fetching data from Supabase
+    """
+    try:
+        supabase = get_supabase_client()
+        
+        # Query specific incident by ID
+        response = supabase.table("incidents").select("*").eq("id", incident_id).execute()
+        
+        if not response.data:
+            logger.info(f"No incident found with ID: {incident_id}")
+            return None
+        
+        logger.info(f"Successfully retrieved incident with ID: {incident_id}")
+        return response.data[0]
+        
+    except Exception as e:
+        logger.error(f"Error fetching incident by ID {incident_id}: {str(e)}")
+        raise Exception(f"Failed to retrieve incident: {str(e)}")
+
+
+def get_similar_incidents() -> List[Dict[str, Any]]:
+    """
+    Retrieve similar incidents from the incidents table using hardcoded IDs.
+    
+    Returns:
+        List[Dict[str, Any]]: List of similar incidents with only required fields
+        
+    Raises:
+        Exception: If there's an error fetching data from Supabase
+    """
+    try:
+        supabase = get_supabase_client()
+        
+        # Hardcoded incident IDs for similarity matching (placeholder for future algorithm)
+        hardcoded_incident_ids = [
+            "499e0467-903c-4053-b879-fb966a72c82e",
+            "d8bb7c02-a3a7-4992-8d7f-b3a3f750543b", 
+            "bc326d6d-c907-4aff-b533-f0d09e3ab6ea"
+        ]
+        
+        # Query specific incidents by ID, selecting only required fields
+        response = supabase.table("incidents").select(
+            "id, date, time_of_day, vessel_name, incident_location_on_vessel, incident_description, tools_used, injury_status"
+        ).in_("id", hardcoded_incident_ids).execute()
+        
+        if not response.data:
+            logger.info("No similar incidents found in database")
+            # Fallback: get first 3 incidents if hardcoded IDs don't exist
+            fallback_response = supabase.table("incidents").select(
+                "id, date, time_of_day, vessel_name, incident_location_on_vessel, incident_description, tools_used, injury_status"
+            ).limit(3).execute()
+            
+            if fallback_response.data:
+                logger.info(f"Using fallback: retrieved {len(fallback_response.data)} incidents")
+                return fallback_response.data
+            else:
+                return []
+        
+        logger.info(f"Successfully retrieved {len(response.data)} similar incidents")
+        return response.data
+        
+    except Exception as e:
+        logger.error(f"Error fetching similar incidents: {str(e)}")
+        raise Exception(f"Failed to retrieve similar incidents: {str(e)}")
 
 
 def insert_incident(accident_data: AccidentData) -> Dict[str, Any]:
