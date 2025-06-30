@@ -83,9 +83,9 @@ def get_similar_incidents() -> List[Dict[str, Any]]:
         
         # Hardcoded incident IDs for similarity matching (placeholder for future algorithm)
         hardcoded_incident_ids = [
-            "499e0467-903c-4053-b879-fb966a72c82e",
-            "d8bb7c02-a3a7-4992-8d7f-b3a3f750543b", 
-            "bc326d6d-c907-4aff-b533-f0d09e3ab6ea"
+            "45e87e95-e58f-4cb7-a2cb-acc4a073a5a1",
+            "dacf145e-fed9-4c4f-b6bd-8d5486c6734f", 
+            "466860e5-108c-4d1b-b2e3-0a4dec5a8344"
         ]
         
         # Query specific incidents by ID, selecting only required fields

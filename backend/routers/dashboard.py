@@ -1,15 +1,35 @@
-from fastapi import APIRouter, Depends, UploadFile, File, HTTPException
-from auth.dependencies import get_current_user
-from db.models import User, DashboardStats, AccidentData, PTWData
-from db.queries import get_all_incidents, insert_incident, get_similar_incidents, get_incident_by_id
-from services.extractor import process_incident_report, process_ptw_report
-import tempfile
-import os
 import logging
+import os
+import tempfile
+
+import pandas as pd
+from auth.dependencies import get_current_user
+from db.models import AccidentData, DashboardStats, PTWData, User
+from db.queries import (
+    get_all_incidents,
+    get_incident_by_id,
+    get_similar_incidents,
+    insert_incident,
+)
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
+from pydantic import BaseModel
+from services.dfagent import ask_dataframe
+from services.extractor import process_incident_report, process_ptw_report
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/dashboard", tags=["dashboard"])
+
+
+class ChatRequest(BaseModel):
+    question: str
+    chat_history: list[dict] = []
+
+
+class ChatResponse(BaseModel):
+    answer: str
+    success: bool
+    error: str = None
 
 
 @router.get("/user", response_model=DashboardStats)
@@ -244,3 +264,59 @@ async def upload_ptw_report(
                 logger.warning(
                     f"Failed to clean up temporary PTW file {temp_file_path}: {str(e)}"
                 )
+
+
+@router.post("/chat", response_model=ChatResponse)
+async def chat_with_data(
+    request: ChatRequest, current_user: User = Depends(get_current_user)
+):
+    """
+    Ask a question about the incidents data using the dataframe agent with chat history context
+    """
+    try:
+        # Get all incidents data
+        incidents = get_all_incidents()
+        
+        if not incidents:
+            return ChatResponse(
+                answer="No incident data is currently available in the database.",
+                success=True
+            )
+        
+        # Convert to pandas DataFrame
+        df = pd.DataFrame(incidents)
+        
+        # Build context from chat history
+        history_context = ""
+        if request.chat_history:
+            history_context = "\n\nPrevious conversation context:\n"
+            for i, msg in enumerate(request.chat_history[-6:]):  # Last 6 messages for context
+                if msg.get('type') == 'user':
+                    history_context += f"User: {msg.get('content', '')}\n"
+                elif msg.get('type') == 'bot':
+                    history_context += f"Assistant: {msg.get('content', '')}\n"
+        
+        # Combine current question with history context
+        full_question = f"{request.question}{history_context}"
+        
+        # Use the dataframe agent to answer the question
+        logger.info(f"Processing chat question with history: {request.question}")
+        result = ask_dataframe(df, full_question)
+        
+        # Extract the answer from the agent result
+        if isinstance(result, dict) and 'output' in result:
+            answer = result['output']
+        elif isinstance(result, str):
+            answer = result
+        else:
+            answer = str(result)
+        
+        return ChatResponse(answer=answer, success=True)
+        
+    except Exception as e:
+        logger.error(f"Error processing chat question: {str(e)}")
+        return ChatResponse(
+            answer="I'm sorry, I encountered an error while processing your question. Please try again.",
+            success=False,
+            error=str(e)
+        )

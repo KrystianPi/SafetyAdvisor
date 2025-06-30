@@ -1,7 +1,7 @@
 'use client'
 
 import { createClient } from '@/lib/supabase'
-import { api, DashboardUserData } from '@/lib/api'
+import { api, DashboardUserData, ChatResponse } from '@/lib/api'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { User } from '@supabase/supabase-js'
@@ -20,7 +20,14 @@ import {
   Eye,
   Cloud,
   Flame,
-  Hand
+  Hand,
+  MessageCircle,
+  Send,
+  Bot,
+  User as UserIcon,
+  X,
+  Minimize2,
+  Maximize2
 } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -33,6 +40,14 @@ interface SelectOption {
   value: string
   label: string
   type: 'categorical' | 'numerical'
+}
+
+interface ChatMessage {
+  id: string
+  type: 'user' | 'bot'
+  content: string
+  timestamp: Date
+  loading?: boolean
 }
 
 const sidebarItems = [
@@ -48,9 +63,17 @@ export default function DashboardPage() {
   const [incidents, setIncidents] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [selectedXAxis, setSelectedXAxis] = useState<string>('vessel_name')
-  const [selectedYAxis, setSelectedYAxis] = useState<string>('swell_height_m')
-  const [selectedHue, setSelectedHue] = useState<string>('classification')
+  const [selectedXAxis, setSelectedXAxis] = useState<string>('sea_state')
+  const [selectedYAxis, setSelectedYAxis] = useState<string>('count')
+  const [selectedHue, setSelectedHue] = useState<string>('vessel_name')
+  
+  // Chat state
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([])
+  const [chatInput, setChatInput] = useState('')
+  const [isChatOpen, setIsChatOpen] = useState(false)
+  const [isChatMinimized, setIsChatMinimized] = useState(false)
+  const [isChatLoading, setIsChatLoading] = useState(false)
+  
   const supabase = createClient()
   const router = useRouter()
 
@@ -294,6 +317,77 @@ export default function DashboardPage() {
     router.push('/login')
   }
 
+  // Chat functions
+  const sendChatMessage = async () => {
+    if (!chatInput.trim() || isChatLoading) return
+
+    const userMessage: ChatMessage = {
+      id: Date.now().toString(),
+      type: 'user',
+      content: chatInput.trim(),
+      timestamp: new Date()
+    }
+
+    const loadingMessage: ChatMessage = {
+      id: (Date.now() + 1).toString(),
+      type: 'bot',
+      content: 'Analyzing your question...',
+      timestamp: new Date(),
+      loading: true
+    }
+
+    setChatMessages(prev => [...prev, userMessage, loadingMessage])
+    setChatInput('')
+    setIsChatLoading(true)
+
+    try {
+      // Prepare chat history for API (exclude loading messages and convert format)
+      const historyForApi = chatMessages
+        .filter(msg => !msg.loading)
+        .map(msg => ({
+          type: msg.type,
+          content: msg.content,
+          timestamp: msg.timestamp.toISOString()
+        }))
+      
+      const response = await api.askQuestion(userMessage.content, historyForApi)
+      
+      // Remove loading message and add real response
+      setChatMessages(prev => {
+        const filtered = prev.filter(msg => !msg.loading)
+        const botMessage: ChatMessage = {
+          id: (Date.now() + 2).toString(),
+          type: 'bot',
+          content: response.answer,
+          timestamp: new Date()
+        }
+        return [...filtered, botMessage]
+      })
+    } catch (error) {
+      // Remove loading message and add error response
+      setChatMessages(prev => {
+        const filtered = prev.filter(msg => !msg.loading)
+        const errorMessage: ChatMessage = {
+          id: (Date.now() + 2).toString(),
+          type: 'bot',
+          content: 'Sorry, I encountered an error while processing your question. Please try again.',
+          timestamp: new Date()
+        }
+        return [...filtered, errorMessage]
+      })
+      console.error('Chat error:', error)
+    } finally {
+      setIsChatLoading(false)
+    }
+  }
+
+  const handleChatKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault()
+      sendChatMessage()
+    }
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -506,116 +600,6 @@ export default function DashboardPage() {
             </Card>
           </div>
 
-          {/* Interactive Data Explorer */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <BarChart3 className="h-5 w-5" />
-                Interactive Data Explorer
-              </CardTitle>
-              <CardDescription>
-                Customize your data visualization by selecting different variables
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {/* Controls Row */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">X-Axis</label>
-                    <select 
-                      value={selectedXAxis} 
-                      onChange={(e) => setSelectedXAxis(e.target.value)}
-                      className="w-full p-2 border rounded-md bg-background text-foreground"
-                    >
-                      {dataOptions.filter(opt => opt.type === 'categorical').map(option => (
-                        <option key={option.value} value={option.value}>
-                          {option.label}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Y-Axis</label>
-                    <select 
-                      value={selectedYAxis} 
-                      onChange={(e) => setSelectedYAxis(e.target.value)}
-                      className="w-full p-2 border rounded-md bg-background text-foreground"
-                    >
-                      {dataOptions.filter(opt => opt.type === 'numerical').map(option => (
-                        <option key={option.value} value={option.value}>
-                          {option.label}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Color By</label>
-                    <select 
-                      value={selectedHue} 
-                      onChange={(e) => setSelectedHue(e.target.value)}
-                      className="w-full p-2 border rounded-md bg-background text-foreground"
-                    >
-                      {dataOptions.filter(opt => opt.type === 'categorical').map(option => (
-                        <option key={option.value} value={option.value}>
-                          {option.label}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-
-                {/* Chart */}
-                <div className="h-96">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={generateInteractiveChartData()}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="name" angle={-45} textAnchor="end" height={80} interval={0} />
-                      <YAxis 
-                        label={{ 
-                          value: dataOptions.find(o => o.value === selectedYAxis)?.label, 
-                          angle: -90, 
-                          position: 'insideLeft',
-                          style: { textAnchor: 'middle', fill: 'hsl(var(--muted-foreground))' },
-                        }} 
-                      />
-                      <Tooltip 
-                        formatter={(value: any, name: any) => [
-                          typeof value === 'number' ? value.toFixed(2) : value, 
-                          name
-                        ]}
-                      />
-                      {getUniqueHueValues().map((hueValue, index) => (
-                        <Bar 
-                          key={hueValue}
-                          dataKey={hueValue}
-                          stackId="a"
-                          name={hueValue}
-                          fill={COLORS[index % COLORS.length]}
-                        />
-                      ))}
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-
-                {/* Legend */}
-                <div className="flex flex-wrap gap-4 justify-center">
-                  {getUniqueHueValues().map((hueValue, index) => (
-                    <div key={hueValue} className="flex items-center gap-2">
-                      <div 
-                        className="w-3 h-3 rounded" 
-                        style={{ backgroundColor: COLORS[index % COLORS.length] }}
-                      />
-                      <span className="text-sm">{hueValue}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
           {/* Charts Grid */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             {/* Minor Injuries and Near Misses */}
@@ -800,6 +784,116 @@ export default function DashboardPage() {
             </Card>
           </div>
 
+          {/* Interactive Data Explorer */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <BarChart3 className="h-5 w-5" />
+                Interactive Data Explorer
+              </CardTitle>
+              <CardDescription>
+                Customize your data visualization by selecting different variables
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {/* Controls Row */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">X-Axis</label>
+                    <select 
+                      value={selectedXAxis} 
+                      onChange={(e) => setSelectedXAxis(e.target.value)}
+                      className="w-full p-2 border rounded-md bg-background text-foreground"
+                    >
+                      {dataOptions.filter(opt => opt.type === 'categorical').map(option => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Y-Axis</label>
+                    <select 
+                      value={selectedYAxis} 
+                      onChange={(e) => setSelectedYAxis(e.target.value)}
+                      className="w-full p-2 border rounded-md bg-background text-foreground"
+                    >
+                      {dataOptions.filter(opt => opt.type === 'numerical').map(option => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Color By</label>
+                    <select 
+                      value={selectedHue} 
+                      onChange={(e) => setSelectedHue(e.target.value)}
+                      className="w-full p-2 border rounded-md bg-background text-foreground"
+                    >
+                      {dataOptions.filter(opt => opt.type === 'categorical').map(option => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                {/* Chart */}
+                <div className="h-96">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={generateInteractiveChartData()}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="name" angle={-45} textAnchor="end" height={80} interval={0} />
+                      <YAxis 
+                        label={{ 
+                          value: dataOptions.find(o => o.value === selectedYAxis)?.label, 
+                          angle: -90, 
+                          position: 'insideLeft',
+                          style: { textAnchor: 'middle', fill: 'hsl(var(--muted-foreground))' },
+                        }} 
+                      />
+                      <Tooltip 
+                        formatter={(value: any, name: any) => [
+                          typeof value === 'number' ? value.toFixed(2) : value, 
+                          name
+                        ]}
+                      />
+                      {getUniqueHueValues().map((hueValue, index) => (
+                        <Bar 
+                          key={hueValue}
+                          dataKey={hueValue}
+                          stackId="a"
+                          name={hueValue}
+                          fill={COLORS[index % COLORS.length]}
+                        />
+                      ))}
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+
+                {/* Legend */}
+                <div className="flex flex-wrap gap-4 justify-center">
+                  {getUniqueHueValues().map((hueValue, index) => (
+                    <div key={hueValue} className="flex items-center gap-2">
+                      <div 
+                        className="w-3 h-3 rounded" 
+                        style={{ backgroundColor: COLORS[index % COLORS.length] }}
+                      />
+                      <span className="text-sm">{hueValue}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
           {/* Recent Incidents Table */}
           <Card>
             <CardHeader>
@@ -860,6 +954,140 @@ export default function DashboardPage() {
           </Card>
         </main>
       </div>
+
+      {/* Chatbot Interface */}
+      {!isChatOpen && (
+        <Button
+          onClick={() => setIsChatOpen(true)}
+          className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-lg"
+          size="icon"
+        >
+          <MessageCircle className="h-6 w-6" />
+        </Button>
+      )}
+
+      {isChatOpen && (
+        <Card className={cn(
+          "fixed bottom-6 right-6 w-96 shadow-xl transition-all duration-300",
+          isChatMinimized ? "h-16" : "h-96"
+        )}>
+          <CardHeader className="p-4 pb-2">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Bot className="h-5 w-5 text-primary" />
+                <CardTitle className="text-sm">Data Assistant</CardTitle>
+              </div>
+              <div className="flex items-center gap-1">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-6 w-6"
+                  onClick={() => setIsChatMinimized(!isChatMinimized)}
+                >
+                  {isChatMinimized ? (
+                    <Maximize2 className="h-3 w-3" />
+                  ) : (
+                    <Minimize2 className="h-3 w-3" />
+                  )}
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-6 w-6"
+                  onClick={() => setIsChatOpen(false)}
+                >
+                  <X className="h-3 w-3" />
+                </Button>
+              </div>
+            </div>
+          </CardHeader>
+
+          {!isChatMinimized && (
+            <CardContent className="p-4 pt-0 flex flex-col h-80">
+              {/* Chat Messages */}
+              <div className="flex-1 overflow-y-auto space-y-3 mb-4 pr-2">
+                {chatMessages.length === 0 && (
+                  <div className="text-center text-muted-foreground text-sm py-8">
+                    <Bot className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                    <p>Ask me anything about your incident data!</p>
+                    <p className="text-xs mt-1">
+                      Try: "How many incidents involved hand injuries?" or "Show me incidents by vessel"
+                    </p>
+                    <p className="text-xs mt-1 italic">
+                      I remember our conversation history for better context!
+                    </p>
+                  </div>
+                )}
+                
+                {chatMessages.map((message) => (
+                  <div
+                    key={message.id}
+                    className={cn(
+                      "flex gap-2 max-w-[85%]",
+                      message.type === 'user' ? "ml-auto" : "mr-auto"
+                    )}
+                  >
+                    <div className={cn(
+                      "flex gap-2 items-start",
+                      message.type === 'user' ? "flex-row-reverse" : "flex-row"
+                    )}>
+                      <div className={cn(
+                        "flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-xs",
+                        message.type === 'user' 
+                          ? "bg-primary text-primary-foreground" 
+                          : "bg-muted text-muted-foreground"
+                      )}>
+                        {message.type === 'user' ? (
+                          <UserIcon className="h-3 w-3" />
+                        ) : (
+                          <Bot className="h-3 w-3" />
+                        )}
+                      </div>
+                      <div className={cn(
+                        "px-3 py-2 rounded-lg text-sm",
+                        message.type === 'user'
+                          ? "bg-primary text-primary-foreground"
+                          : "bg-muted text-foreground",
+                        message.loading && "animate-pulse"
+                      )}>
+                        <p className="whitespace-pre-wrap">{message.content}</p>
+                        {message.loading && (
+                          <div className="flex gap-1 mt-1">
+                            <div className="w-1 h-1 bg-current rounded-full animate-bounce"></div>
+                            <div className="w-1 h-1 bg-current rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                            <div className="w-1 h-1 bg-current rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Chat Input */}
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={chatInput}
+                  onChange={(e) => setChatInput(e.target.value)}
+                  onKeyPress={handleChatKeyPress}
+                  placeholder="Ask about your incident data..."
+                  className="flex-1 px-3 py-2 text-sm border rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-primary"
+                  disabled={isChatLoading}
+                />
+                <Button
+                  onClick={sendChatMessage}
+                  size="icon"
+                  className="h-9 w-9"
+                  disabled={!chatInput.trim() || isChatLoading}
+                >
+                  <Send className="h-4 w-4" />
+                </Button>
+              </div>
+            </CardContent>
+          )}
+        </Card>
+      )}
     </div>
   )
 } 

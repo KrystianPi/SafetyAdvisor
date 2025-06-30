@@ -232,6 +232,21 @@ export interface SimilarIncident {
   injury_status: string
 }
 
+export interface ChatRequest {
+  question: string
+  chat_history: Array<{
+    type: 'user' | 'bot'
+    content: string
+    timestamp: string
+  }>
+}
+
+export interface ChatResponse {
+  answer: string
+  success: boolean
+  error?: string
+}
+
 // Typed API functions
 export const api = {
   // Dashboard endpoints
@@ -247,4 +262,8 @@ export const api = {
   uploadPTWReport: (file: File): Promise<PTWData> => apiClient.uploadFile('/dashboard/upload-ptw', file),
   getSimilarIncidents: (): Promise<{similar_incidents: SimilarIncident[], summary: string}> => apiClient.get('/dashboard/similar-incidents'),
   getIncidentDetails: (incidentId: string): Promise<{incident: AccidentData}> => apiClient.get(`/dashboard/incident/${incidentId}`),
+  
+  // Chat endpoints
+  askQuestion: (question: string, chatHistory: Array<{type: 'user' | 'bot', content: string, timestamp: string}> = []): Promise<ChatResponse> => 
+    apiClient.post('/dashboard/chat', { question, chat_history: chatHistory } as Record<string, unknown>),
 } 
