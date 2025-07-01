@@ -133,7 +133,8 @@ export default function DashboardPage() {
     }, {})
     
     return Object.entries(grouped).map(([task, count]) => ({
-      task: task.substring(0, 30) + (task.length > 30 ? '...' : ''),
+      task: task, // Keep full task name
+      taskShort: task.length > 15 ? task.substring(0, 15) + '...' : task, // Shorter version for display
       count
     }))
   }
@@ -201,7 +202,34 @@ export default function DashboardPage() {
       return acc
     }, {})
     
-    return Object.entries(seaStates).map(([state, count]) => ({ state, count }))
+    // Define sea state order from smooth to very rough
+    const seaStateOrder = [
+      'Smooth',
+      'Calm',
+      'Slight',
+      'Light',
+      'Moderate',
+      'Rough',
+      'Very Rough',
+      'High',
+      'Very High',
+      'Phenomenal',
+      'Unknown'
+    ]
+    
+    const result = Object.entries(seaStates).map(([state, count]) => ({ state, count }))
+    
+    // Sort according to sea state severity
+    return result.sort((a, b) => {
+      const aIndex = seaStateOrder.findIndex(s => s.toLowerCase() === a.state.toLowerCase())
+      const bIndex = seaStateOrder.findIndex(s => s.toLowerCase() === b.state.toLowerCase())
+      
+      // If not found in order, put at end
+      const aPos = aIndex === -1 ? seaStateOrder.length : aIndex
+      const bPos = bIndex === -1 ? seaStateOrder.length : bIndex
+      
+      return aPos - bPos
+    })
   }
 
   const getFireWatchHotWorkIncidents = () => {
@@ -291,6 +319,38 @@ export default function DashboardPage() {
       })
       result.push(dataPoint)
     })
+
+    // Sort the result based on the X-axis selection
+    if (selectedXAxis === 'sea_state') {
+      // Define sea state order from smooth to very rough
+      const seaStateOrder = [
+        'Smooth',
+        'Calm',
+        'Slight',
+        'Light',
+        'Moderate',
+        'Rough',
+        'Very Rough',
+        'High',
+        'Very High',
+        'Phenomenal',
+        'Unknown'
+      ]
+      
+      result.sort((a, b) => {
+        const aIndex = seaStateOrder.findIndex(s => s.toLowerCase() === a.name.toLowerCase())
+        const bIndex = seaStateOrder.findIndex(s => s.toLowerCase() === b.name.toLowerCase())
+        
+        // If not found in order, put at end
+        const aPos = aIndex === -1 ? seaStateOrder.length : aIndex
+        const bPos = bIndex === -1 ? seaStateOrder.length : bIndex
+        
+        return aPos - bPos
+      })
+    } else {
+      // For other categorical data, sort alphabetically
+      result.sort((a, b) => a.name.localeCompare(b.name))
+    }
 
     return result
   }
@@ -643,12 +703,25 @@ export default function DashboardPage() {
                 <CardDescription>Repetitive task-related incidents</CardDescription>
               </CardHeader>
               <CardContent>
-                <ResponsiveContainer width="100%" height={200}>
+                <ResponsiveContainer width="100%" height={250}>
                   <BarChart data={getRoutineTaskIncidents()}>
                     <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="task" angle={-45} textAnchor="end" height={80} />
+                    <XAxis 
+                      dataKey="taskShort" 
+                      angle={-45} 
+                      textAnchor="end" 
+                      height={100}
+                      interval={0}
+                      tick={{ fontSize: 10 }}
+                    />
                     <YAxis />
-                    <Tooltip />
+                    <Tooltip 
+                      formatter={(value: any, name: any) => [value, 'Incidents']}
+                      labelFormatter={(label: any) => {
+                        const item = getRoutineTaskIncidents().find(i => i.taskShort === label)
+                        return item ? item.task : label
+                      }}
+                    />
                     <Bar dataKey="count" fill="#82ca9d" />
                   </BarChart>
                 </ResponsiveContainer>
